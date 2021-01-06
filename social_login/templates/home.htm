@@ -1,0 +1,16 @@
+{% extends 'base.htm' %}
+
+{% load socialaccount %}
+
+{% block content %}
+<div class="container" style="text-align: center; padding-top: 10%;">
+    <h1>Django Social Login</h1><br><br>
+    {% if user.is_authenticated %}
+    <h3>Welcome {{ user.username }} !!!</h3><br><br>
+    <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+    {% else %}
+    <a href="{% provider_login_url 'github' %}" class="btn btn-secondary"><i class="fa fa-github fa-fw"></i> Login with GitHub</a>
+    <a href="{% provider_login_url 'twitter' %}" class="btn btn-primary"><i class="fa fa-twitter fa-fw"></i> Login with Twitter</a>
+    {% endif %}
+</div>
+{% endblock content %}
