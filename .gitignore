@@ -1,2 +1,3 @@
 .venv
-**/*.db
+**/__pycache__
+social_login/db.sqlite3
