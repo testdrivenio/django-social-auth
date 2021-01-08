@@ -41,7 +41,7 @@ Now create a new project,
 
 Navigate to http://localhost:8000 and you should see the following screen,
 
-![django landing page](images/django-landing.PNG)
+![django landing page](images/django-landing.png)
 
 ### Configure Django Allauth
 
@@ -129,7 +129,7 @@ Now that both django project and allauth are ready, we'll add GitHub login to ou
 
 Head over to https://github.com/settings/applications/new, and create a new oauth application.
 
-![github oauth app register](images/github-register.PNG)
+![github oauth app register](images/github-register.png)
 
 ```text
 HomePage URL: http://127.0.0.1:8000
@@ -138,7 +138,7 @@ Callback URL: http://127.0.0.1:8000/accounts/github/login/callback
 
 Once you create a new application, you'll get Client ID and Client Secrets which must be kept secret.
 
-![github app registered](images/github-registered.PNG)
+![github app registered](images/github-registered.png)
 
 Now we setup GitHub login on our django admin panel. Before proceeding any furthur, we need to create a superuser.
 
@@ -157,13 +157,13 @@ and login to http://localhost:8000/admin
 
 Navigate to http://localhost:8000/admin/sites/site/, and change the `domain name` to `127.0.0.1`
 
-![sites](images/sites.PNG)
+![sites](images/sites.png)
 
 > The OAuth does not accept `localhost` while registering a new application. So we use `127.0.0.1` instead. Replace the `127.0.0.1` with your actual URL on production.
 
 Now go back to the homepage of admin, and goto `Social applications`. Click `ADD SOCIAL APPLICATION`.
 
-![github setup](images/github-setup.PNG)
+![github setup](images/github-setup.png)
 
 Do the following
 
