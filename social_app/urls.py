@@ -7,6 +7,5 @@ from .views import Home
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
-    path("accounts/", include("django.contrib.auth.urls")),
     path("", Home.as_view(), name="home"),
 ]
