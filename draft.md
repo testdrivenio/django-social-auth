@@ -1,91 +1,106 @@
 # Adding Social Authentication to Django
 
-This post looks at how to add [social login](https://en.wikipedia.org/wiki/Social_login) to a Django application.
+This post looks at how to add social auth (also known as social login or social sign-on) to a Django application with [Django Allauth](https://github.com/pennersr/django-allauth). You'll also configure GitHub and Twitter auth.
 
-> Social login is a form of single sign-on using existing information from a social networking service such as Facebook, Twitter or Google, to sign in to a third-party website instead of creating a new login account specifically for that website. It is designed to simplify logins for end-users and provide more reliable demographic information to web developers. - Wikipedia
+> Social login is a form of single sign-on using existing information from a social networking service such as Facebook, Twitter or Google, to sign in to a third-party website instead of creating a new login account specifically for that website. It is designed to simplify logins for end-users and provide more reliable demographic information to web developers. - [Wikipedia](https://en.wikipedia.org/wiki/Social_login)
 
-Using a social login has its advantages. The developer need not setup login/signup for the web application, as the third-party websites provide the authentication. Also, services like Google, Facebook, GitHub does extensive checks to prevent unauthorized access to their services. This can boost the security of our application.
+Using a social auth has its advantages. The developer need not set up auth/signup for the web application, as the third-party websites provide the authentication. Also, since services like Google, Facebook, and GitHub do extensive checks to prevent unauthorized access to their services, leveraging social auth instead of rolling your own auth mechanism can boost the security of your application.
 
-## Django Allauth v/s Python Social Auth
+TODO: flesh out the pros and cons vs rolling your own auth. this may need to be added to a new section.
 
-[Django allauth](https://github.com/pennersr/django-allauth) and [Python social auth](https://python-social-auth.readthedocs.io/en/latest/) are the two most popular libraries for implementing social authentication in Django.
+Pros:
+
+1. **Increased velocity**: Since don't have to develop an auth mechanism, so you can focus on developing other areas of your app
+1. **Improved security**
+- Easier and faster log in flows since there's no need to create and remember a username or password.
+- In case of a security breach, no third-party damage will occur, as the authentication is passwordless.
+
+Cons:
+
+- Your application now depends on another app, outside of your control. If the OpenID system is down, users won't be able to log in.
+- People often tend to ignore the permissions requested by OAuth applications.
+- Users that don't have accounts on the OpenID providers that you have configured won't be able to access your application. The best approach is to implement both -- e.g., username and password and OpenID -- and let the user choose.
+
+## Django Allauth vs Python Social Auth
+
+[Django Allauth](https://github.com/pennersr/django-allauth) and [Python Social Auth](https://python-social-auth.readthedocs.io/en/latest/) are the two most popular packages for implementing social authentication in Django.
 
 ### Django Allauth
 
 #### Pros
 
-- Django Allauth is a trendy library
-- It supports over 50 authentication providers
-- Along with social login, it also provides login with email and username
-- Django allauth supports providing custom forms during signups
+- Django Allauth is one of the most popular Django packages
+- Supports over 50 authentication providers (i.e., GitHub, Twitter, Google)
+- Along with social auth, it also provides regular auth with username and password
+- Django Allauth makes it easy to customize the forms used during the auth flow
 
 #### Cons
 
-- Though the library is popular, the documentation is not well written
+- Despite the package's popularity, the documentation is poorly structured and not meant for beginners.
 - Initial setup required to register an OAuth application. This could be a slight overhead for beginners.
 - 250+ issues on GitHub
+
+TODO: Does `Initial setup required to register an OAuth application. This could be a slight overhead for beginners.` affect both packages? Do you not have initial setup for Python Social Auth as well?
 
 ### Python Social Auth
 
 #### Pros
 
-- Provides support for frameworks such as Django, Flask, Webpy, Pyramid, and Tornado.
-- It supports almost 50 OAuth providers
-- Support for Django ORM and MongoEngine
-- It provides a Storage interface to allow users to add more databases.
+- Provides support for a number of Python web frameworks like Django, Flask, Webpy, Pyramid, and Tornado.
+- Supports almost 50 OAuth providers
+- Supports the Django ORM and [MongoEngine](http://mongoengine.org/) ODM
+- It provides a Storage interface to allow users to add more databases. TODO: any example or blog post we can point to for this?
 
 #### Cons
 
-- This library also lacks a well-written documentation
+- The documentation is a bit simpler, but it could still use some work with regard to organization
 - Close to 100 open issues on GitHub
 
-Both libraries have their ups and downs. However, this post focuses on Django Allauth as it is more popular.
+Both packages have their ups and downs. However, this post focuses on Django Allauth as it's more popular and supports social auth as well as regular auth via username and password.
 
 ## Django Setup
 
 ### Create a new Django project
 
-Let's create a new Django app; start by creating and virtualenv and installing Django.
+Let's create a new Django app.
+
+Start by creating a virtual environment and installing Django:
 
 ```bash
-$ virtualenv .venv
-
-$ .venv/Scripts/activate # for windows
-$ source venv/scripts/activate # for linux
-
-# install django
-(.venv) $ pip install Django==3.1.4
+$ mkdir django-social-auth && cd django-social-auth
+$ python3.9 -m venv .venv
+$ source .venv/bin/activate
+(.venv)$ pip install Django==3.1.5
 ```
 
-Now create a new project,
+> Feel free to swap out virtualenv and Pip for [Poetry](https://python-poetry.org/) or [Pipenv](https://pipenv.pypa.io/). For more, review [Modern Python Environments](/blog/python-environments/).
+
+Now create a new project, apply the migrations, and run the server:
 
 ```bash
-(.venv) $ django-admin startproject social_app
-(.venv) $ cd social_app
-
-# create the initial migration
-(.venv) $ python manage.py migrate
-
-# Run the server
-(.venv) $ python manage.py runserver
+(.venv)$ django-admin startproject social_app .
+(.venv)$ python manage.py migrate
+(.venv)$ python manage.py runserver
 ```
 
-Navigate to http://localhost:8000, and you should see the following screen,
+TODO: it might be worth mentioning that readers may want to create a customer user model before applying the initial migrations (https://testdriven.io/blog/django-custom-user-model/)
+
+Navigate to [http://localhost:8000](http://localhost:8000). You should see the following screen:
 
 ![django landing page](images/django-landing.png)
 
 ### Configure Django Allauth
 
-Now let's set up Django allauth for our Django app. Start by installing Django allauth
+Next, let's set up Django Allauth for our Django app.
 
 ```bash
-(.venv) $ pip install django-allauth==0.44.0
+(.venv)$ pip install django-allauth==0.44.0
 ```
 
-For django-allauth to work with our django app, we must update the `settings.py` file.
+For Django Allauth to work with our django app, update `INSTALLED_APPS` inside the *settings.py* file like so:
 
 ```python
-# social_login/settings.py
+# social_app/settings.py
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -99,18 +114,21 @@ INSTALLED_APPS = [
     "allauth", # new
     "allauth.account", # new
     "allauth.socialaccount", # new
-    # We use the following providers
+    # social providers
     "allauth.socialaccount.providers.github", # new
     "allauth.socialaccount.providers.twitter", # new
 ]
 ```
 
-`Django.contrib.sites` is required to add a domain to our Django application. Read more about it in the [django sites framework documentation](https://docs.djangoproject.com/en/3.1/ref/contrib/sites/)
+`Django.contrib.sites` is required to add a domain to our Django application. Read more about it in the [django sites framework documentation](https://docs.djangoproject.com/en/3.1/ref/contrib/sites/).
 
-Now add the following to `settings.py`
+TODO: why do we need to care about a domain at this point?
+TODO: can you add a note about `allauth` and `allauth.account` and `allauth.socialaccount`. These are the core apps, correct? Are all three required?
+
+Now add the following to the bottom of *settings.py*:
 
 ```python
-# social_login/settings.py
+# social_app/settings.py
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
@@ -123,21 +141,23 @@ LOGIN_REDIRECT_URL = "home"
 ACCOUNT_LOGOUT_ON_GET = True
 ```
 
-Here, we defined the following,
+Here, we defined the following:
 
-- Authentication backends (django + django-allauth)
-- `SITE_ID`: This is required for django-allauth to function.
+- Authentication backends (Django + Django Allauth)
+- `SITE_ID`, which is required for Django Allauth to function.
 - Turn off verification email
 - Redirect to `home` after login
 - Disable the confirmation page during log out; this will directly log out the user without asking for confirmation.
 
-Now we update the `urls.py` to include allauth.
+TODO: can you explain the above in a bit more detail?
+
+Update the *urls.py* to include Django Allauth:
 
 ```python
-# social_login/urls.py
-
 from django.contrib import admin
 from django.urls import path, include # new
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")), # new
@@ -145,78 +165,87 @@ urlpatterns = [
 ]
 ```
 
-Migrate the changes to update the database,
+TODO: Why two `accounts/` paths?
+
+Apply the migration files associated with Django Allauth:
 
 ```bash
-
-(.venv) $ python manage.py migrate
-
-(.venv) $ python manage.py runserver
+(.venv)$ python manage.py migrate
 ```
 
-## GitHub example
+Create a superuser:
 
-Now that both the Django project and allauth are ready, we'll add a GitHub login to our application. First, we need to create an OAuth app and get the OAuth keys from GitHub.
+```bash
+(.venv)$ python manage.py createsuperuser
+```
 
-Head over to https://github.com/settings/applications/new, and create a new OAuth application.
+TODO: is there any way to test out vanilla social auth with username, email, and password at this point?
+
+## Templates
+
+TODO: it might make for a better flow to set up the base and home templates here along with the site in the django admin. Then readers can either wire up GitHub or Twitter.
+
+## GitHub Provider
+
+Now that both the Django and Django Allauth are ready, let's wire up our first auth provider -- GitHub.
+
+### App
+
+First, we need to create an OAuth app and get the OAuth keys from GitHub. Log in to your GitHub account, and then navigate to [https://github.com/settings/applications/new](https://github.com/settings/applications/new) to create a new [OAuth application](https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps):
 
 ![github oauth app register](images/github-register.png)
 
 ```text
+Application name: Testing Django Allauth
 Homepage URL: http://127.0.0.1:8000
 Callback URL: http://127.0.0.1:8000/accounts/github/login/callback
 ```
 
-Once you create a new application, you'll get a Client ID and Client Secret, which must be kept secret.
+TODO: why http://127.0.0.1 and not http://localhost?
+
+Take note of the Client ID and Client Secret:
 
 ![github app registered](images/github-registered.png)
 
-Now we set up GitHub login on our Django admin panel. Before proceeding any further, we need to create a superuser.
+Now we set up GitHub login in the Django admin panel.
+
+Run the server:
 
 ```bash
-
-(.venv) $ python manage.py createsuperuser
+(.venv)$ python manage.py runserver
 ```
 
-Follow the steps and create a new superuser. Now run the server,
-
-```bash
-(.venv) $ python manage.py runserver
-```
-
-and login to http://localhost:8000/admin
-
-Navigate to http://localhost:8000/admin/sites/site/, and change the `domain name` to `127.0.0.1`
+Log in to the admin at [http://localhost:8000/admin](http://localhost:8000/admin). Change the domain name in "Sites" to `127.0.0.1`:
 
 ![sites](images/sites.png)
 
 > The OAuth does not accept `localhost` while registering a new application. So we use `127.0.0.1` instead. Replace the `127.0.0.1` with your actual URL on production.
 
-Now go back to the homepage of admin, and goto `Social applications`. Click `ADD SOCIAL APPLICATION`.
+Next, under "Social applications", click "Add Social Application":
 
 ![github setup](images/github-setup.png)
 
-Do the following
+Notes:
 
-- Choose GitHub as Provider
-- Add Client ID and Client Secret obtained earlier
-- Choose 127.0.0.1 (either using the arrows or using choose all)
+- Choose GitHub as the Provider
+- Add the Client ID and Client Secret (to Secret key) obtained earlier
+- Add 127.0.0.1 as one of the Chosen Sites
 
-We have successfully integrated GitHub with our django app. Now let's create a view to test it out.
+We've successfully integrated GitHub auth. With that, let's create a template and view to test it out.
 
 ### Templates
 
-Create a new folder named templates, and two files named `base.htm` and `home.htm`.
+Create a new folder called "templates", and add two files to it called *_base.html* and *home.html*:
 
 ```bash
-(.venv) $ mkdir templates && cd templates
-(.venv) $ touch base.htm home.htm
+(.venv)$ mkdir templates && cd templates
+(.venv)$ touch base.html home.html
 ```
 
-Setup our template directory in settings.py. We tell the Django app to look for the `templates` directory in the BASE DIRECTORY.
+Update `TEMPLATES` in *settings* so that Django knows where to find the templates:
 
 ```python
-# social_login/settings.py
+# social_app/settings.py
 
 TEMPLATES = [
     {
@@ -227,7 +256,7 @@ TEMPLATES = [
 ]
 ```
 
-Add the following to `templates/base.htm`.
+*templates/_base.html*:
 
 ```html
 <!DOCTYPE html>
@@ -253,48 +282,55 @@ Add the following to `templates/base.htm`.
 </html>
 ```
 
-This calls the bootstrap library and another library to include some icons.
-
-Now we populate `templates/home.htm` with the following,
+*templates/home.html*
 
 ```html
-{% extends 'base.htm' %} {% load socialaccount %} {% block content %}
+{% extends '_base.html' %} {% load socialaccount %}
+
+{% block content %}
+
 <div class="container" style="text-align: center; padding-top: 10%;">
   <h1>Django Social Login</h1>
+
   <br /><br />
+
   {% if user.is_authenticated %}
-  <h3>Welcome {{ user.username }} !!!</h3>
-  <br /><br />
-  <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+    <h3>Welcome {{ user.username }} !!!</h3>
+    <br /><br />
+    <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
   {% else %}
-  <a href="{% provider_login_url 'github' %}" class="btn btn-secondary"
-    ><i class="fa fa-github fa-fw"></i> Login with GitHub</a
-  >
+    <a href="{% provider_login_url 'github' %}" class="btn btn-secondary">
+      <i class="fa fa-github fa-fw"></i>
+      <span>Login with GitHub</span>
+    </a>
   {% endif %}
 </div>
+
 {% endblock content %}
 ```
 
-`home.htm` contains the login button and logout button. Finally, we need to create a view to serve `home.htm`.
+Create a view to serve up the *home.html* template:
 
 ```python
-social_login/views.py
+# social_app/views.py
 
 from django.views.generic import TemplateView
 
 
 class Home(TemplateView):
-    template_name = "home.htm"
+    template_name = "home.html"
 ```
 
-and include it in `urls.py`
+Add the new URL:
 
 ```python
-# social_login/urls.py
+# social_app/urls.py
 
 from django.contrib import admin
 from django.urls import path, include
+
 from .views import Home # new
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -304,49 +340,85 @@ urlpatterns = [
 ]
 ```
 
-Navigate to http://127.0.0.1:8000, and you should see,
+Run the app. You should now be able to log in via GitHub.
 
 ![github login](images/github-login.PNG)
 
-## Twitter Example
+TODO: might be worth adding a graphic of the social log auth flow:
 
-Setting up a Twitter login is similar to the GitHub example.
+1. your app
+1. click login, redirect to github
+2. authorize
+3. redirect to call back
 
-1. Grab tokens by creating an OAuth application
-1. Register the app in django-admin
-1. Add URL to the home template
+TODO: add a note about after logging in, you should see the new account at http://127.0.0.1:8010/admin/socialaccount/socialaccount/.
 
-To get tokens, you'll need to set up a [Twitter developer](https://developer.twitter.com/en/portal/dashboard) account. Once created, go to [Projects and Apps](https://developer.twitter.com/en/portal/projects-and-apps) tab and click on `Create App`.
+## Twitter Provider
+
+Setting up the Twitter provider is similar to GitHub:
+
+1. Create OAuth app
+1. Register the provider in the Django admin
+1. Update the *home.html* template
+
+Start by [applying](https://developer.twitter.com/en/portal/dashboard) for a Twitter developer account. Once created, navigate to [Projects and Apps](https://developer.twitter.com/en/portal/projects-and-apps) and click "Create App".
 
 ![Twitter New App](images/twitter-new-app.PNG)
 
-Once the app is created, go to the app and select `Authentication Settings`. Enable it, and add the following,
+Once the app is created, go to the app and select "Authentication Settings". Enable it. Than, and add the following:
 
 ![Twitter auth enable](images/twitter-enable.PNG)
 
-Now, navigate to the `keys and token` tab on the top of the page. There you can access your tokens under `API key & secret`.
+Navigate to the "keys and token" tab on the top of the page. Access your tokens under "API key & secret".
 
-Next, we need to register our app with django-admin. Navigate to http://localhost:8000/admin/socialaccount/socialapp/ and add a new Twitter app.
+Now, we need to register the provider in the Django Admin.
+
+Run the server:
+
+```bash
+(.venv)$ python manage.py runserver
+```
+
+Log in to the admin at [http://localhost:8000/admin](http://localhost:8000/admin).
+
+Next, under "Social applications", click "Add Social Application":
 
 ![Twitter Register](images/twitter-register.PNG)
 
 > Remember to safeguard your API keys and tokens.
 
-All we need to do now is to add a button that says `Login with Twitter`. Make the following change to `templates/home.htm`.
+All we need to do now is to add a button that says "Login with Twitter" to the *home.html* template:
 
 ```html
-{% else %}
-<a href="{% provider_login_url 'github' %}" class="btn btn-secondary"
-  ><i class="fa fa-github fa-fw"></i> Login with GitHub</a
->
-// new
-<a href="{% provider_login_url 'twitter' %}" class="btn btn-primary"
-  ><i class="fa fa-twitter fa-fw"></i> Login with Twitter</a
->
-{% endif %}
+{% extends '_base.html' %} {% load socialaccount %}
+
+{% block content %}
+
+<div class="container" style="text-align: center; padding-top: 10%;">
+  <h1>Django Social Login</h1>
+
+  <br /><br />
+
+  {% if user.is_authenticated %}
+    <h3>Welcome {{ user.username }} !!!</h3>
+    <br /><br />
+    <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+  {% else %}
+
+    ...
+
+    </a>
+    <a href="{% provider_login_url 'twitter' %}" class="btn btn-primary">
+      <i class="fa fa-twitter fa-fw"></i>
+      <span>Login with Twitter</span>
+    </a>
+  {% endif %}
+</div>
+
+{% endblock content %}
 ```
 
-Go to http://127.0.0.1:8000 and test out your application.
+Navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000) and test out the auth workflow.
 
 ### Demo
 
@@ -354,10 +426,11 @@ Go to http://127.0.0.1:8000 and test out your application.
 
 ## Conclusion
 
-In this post, we saw how to set up Twitter and GitHub login for our Django application. Setting up social login is not a tough job; we performed the following Twitter and GitHub steps.
+In this post, we saw how to set up GitHub and Twitter auth to a Django app with Django Allauth. When you need to configure a new provider, you can follow these steps:
 
-1. Grab API tokens by creating OAuth tokens
-1. Register OAuth application with Django-admin
-1. Add URL to templates
+1, Add the appropriate Allauth app to `INSTALLED_APPS` in the settings
+1. Create an OAuth app on the provider's developer site and take note of the tokens/keys/secret
+1. Register the app with in the Django Admin
+1. Add the URL to the template
 
-Though the post was focused on Django allauth, it does not necessarily mean Django allauth is the best. Explore both libraries, try out methods like implementing custom forms, and linking multiple social accounts. Finally, choose the one that fits your need.
+Although, this post focused on Django Allauth, it doesn't necessarily mean it should be used over Python Social Auth in every scenario. Explore both packages. Try implementing custom forms and linking multiple social accounts. Finally, choose the one that fits your need.
