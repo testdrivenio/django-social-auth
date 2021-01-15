@@ -7,6 +7,7 @@ This tutorial looks at how to add social auth (also known as social login, socia
 Using a social auth has its advantages. You won't need to set up auth for the web application, since it's handled by the third-party, [OAuth provider](https://en.wikipedia.org/wiki/List_of_OAuth_providers). Also, since providers like Google, Facebook, and GitHub perform extensive checks to prevent unauthorized access to their services, leveraging social auth instead of rolling your own auth mechanism can boost your application's security.
 
 TODO: for michael (re-record demo app)
+demo .gif and .mp4 added to images folder
 
 ## Why OAuth?
 
@@ -24,8 +25,14 @@ Why would you want to leverage OAuth over rolling your own auth?
 1. People often tend to ignore the permissions requested by OAuth providers.
 1. Users that don't have accounts on one of the providers that you have configured won't be able to access your application. The best approach is to implement both -- e.g., username and password and social auth -- and let the user choose.
 
-TODO: can you add just a brief not about what OAuth is and how it relates to social auth?
-TODO: move the social auth flow here, along with the image
+OAuth is a secure authentication/authorization protocol, where a 3rd party authentication provider verifies the user and provides the `session token` to make requests. Social login is built on top of the OAuth standard and is usually implemented using [openID](https://en.wikipedia.org/wiki/Openid) or [SAML](https://en.wikipedia.org/wiki/Saml).
+
+![OAuth flow](images/flow.png)
+
+1. The user logins with the auth provider
+1. The auth provider verifies the credentials and returns the data requested in the scope
+
+This is just an abstraction. To understand more about what's happening under the hood, read [this article](https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2).
 
 ## Django Allauth vs. Python Social Auth
 
@@ -248,7 +255,7 @@ TEMPLATES = [
 {% endblock content %}
 ```
 
-TODO: what does `{% load socialaccount %}` do?
+`{% load socialaccount %}` is called a template tag. It provides with the necessary templates like login url for each provider, type of authentication and whether to reauthenticate user during each login. Read more about socialaccount tag at the [Official documentation](https://django-allauth.readthedocs.io/en/latest/templates.html#social-account-tags)
 
 Create a view to serve up the *home.html* template:
 
@@ -282,7 +289,9 @@ urlpatterns = [
 
 That's it! Django Allauth is configured and ready to test. Run the server. Navigate to [http://http://127.0.0.1:8000/accounts/login/](http://http://127.0.0.1:8000/accounts/login/). Make sure you can log in with your superuser credentials.
 
-TODO: can you provide a link to a resource for customizing the forms?
+Read about customizing Django allauth forms,
+- [django-allauth - Overriding default signup form](https://stackoverflow.com/a/36504600)
+- [Customizing Django Allauth Signup Forms](https://dev.to/danielfeldroy/customizing-django-allauth-signup-forms-2o1m)
 
 ## GitHub Provider
 
